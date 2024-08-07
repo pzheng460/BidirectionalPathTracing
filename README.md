@@ -1,10 +1,32 @@
-# Bidirectional Path Tracing Architecture Summary and Details
+# Bidirectional Path Tracing
 
 ## Introduction
 
-This program provides a detailed implementation of a fundamental paper in rendering, focusing on Bidirectional Path Tracing (BDPT), Multiple Importance Sampling (MIS). These techniques are crucial for constructing a "high-end graphics rendering learning system."
+This program provides a detailed implementation of a fundamental paper in rendering, focusing on Bidirectional Path Tracing (BDPT), Multiple Importance Sampling (MIS). The whole project is written in pure C++ based on the architecture of path tracing assignment from GAMES101.
 
-## Contents
+## Example
+
+![BidirectionalPathTracing](images/BidirectionalPathTracing.jpg)
+
+*Figure 1: Bidirectional Path Tracing.*
+
+## Tutorial
+
+1. Create a build file folder in the directory
+
+2. Running cmake file
+
+   ```
+   cmake.
+   ```
+
+3. ```
+   ./BidirecionalPathTracing
+   ```
+
+   An image file named "binary.ppm" would appear in the directory.
+
+## Theory
 
 ### 1. Bidirectional Path Tracing Architecture
 
@@ -18,7 +40,7 @@ $$ f_j(x) = L_e(x_0 \rightarrow x_1) G(x_0 \leftrightarrow x_1) f_s(x_0 \rightar
 
 The unweighted contribution can be written as $C^*_{s,t}$:
 
-$$ C^*_{s,t} \equiv \frac{f_j(x_{s,t})}{p_{s,t}(x_{s,t})} \equiv \alpha^L_s c_{s,t} \alpha^E_t $$
+$$C^*_{s,t} \equiv \frac{f_j(x_{s,t})}{p_{s,t}(x_{s,t})} \equiv \alpha^L_s c_{s,t} \alpha^E_t$$
 
 #### 1.3 Path Weights
 
