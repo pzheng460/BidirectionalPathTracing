@@ -1,4 +1,5 @@
 #pragma once
+
 #include <iostream>
 #include <cmath>
 #include <random>
@@ -6,13 +7,15 @@
 #undef M_PI
 #define M_PI 3.141592653589793f
 
-extern const float  EPSILON;
+const float EPSILON = 0.00001;
 const float kInfinity = std::numeric_limits<float>::max();
+
+inline float deg2rad(const float& deg) { return deg * M_PI / 180.0; }
 
 inline float clamp(const float &lo, const float &hi, const float &v)
 { return std::max(lo, std::min(hi, v)); }
 
-inline  bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, float &x1)
+inline bool solveQuadratic(const float &a, const float &b, const float &c, float &x0, float &x1)
 {
     float discr = b * b - 4 * a * c;
     if (discr < 0) return false;
@@ -40,14 +43,15 @@ inline float get_random_float()
 inline void UpdateProgress(float progress)
 {
     int barWidth = 70;
-
-    std::cout << "[";
     int pos = barWidth * progress;
+
+    std::cout << "\r[";
+
     for (int i = 0; i < barWidth; ++i) {
         if (i < pos) std::cout << "=";
         else if (i == pos) std::cout << ">";
-        else std::cout << " ";
+        else std::cout << " " << std::flush;
     }
-    std::cout << "] " << int(progress * 100.0) << " %\r";
-    std::cout.flush();
+    std::cout << "] " << int(progress * 100.0) << " %" << std::flush;
 };
+

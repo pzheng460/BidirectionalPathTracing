@@ -1,9 +1,10 @@
-//
-// Created by goksu on 2/25/20.
-//
+#ifndef RAYTRACING_RENDERER_H
+#define RAYTRACING_RENDERER_H
+
 #include "Scene.hpp"
 
 #pragma once
+
 struct hit_payload
 {
     float tNear;
@@ -16,6 +17,6 @@ class Renderer
 {
 public:
     void Render(const Scene& scene, int spp);
-
-private:
 };
+
+#endif //RAYTRACING_RENDERER_H

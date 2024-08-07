@@ -134,12 +134,12 @@ Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
 
 
 void BVHAccel::getSample(BVHBuildNode* node, float p, Intersection &pos, float &pdf){
-    if(node->left == nullptr || node->right == nullptr){
+    if (node->left == nullptr || node->right == nullptr) {
         node->object->Sample(pos, pdf);
         pdf *= node->area;
         return;
     }
-    if(p < node->left->area) getSample(node->left, p, pos, pdf);
+    if (p < node->left->area) getSample(node->left, p, pos, pdf);
     else getSample(node->right, p - node->left->area, pos, pdf);
 }
 

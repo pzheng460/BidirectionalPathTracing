@@ -1,15 +1,12 @@
-//
-// Created by LEI XU on 5/16/19.
-//
-
 #ifndef RAYTRACING_MATERIAL_H
 #define RAYTRACING_MATERIAL_H
 
+#include "global.hpp"
 #include "Vector.hpp"
 
-enum MaterialType { DIFFUSE};
+enum MaterialType { DIFFUSE };
 
-class Material{
+class Material {
 private:
 
     // Compute reflection direction
@@ -94,7 +91,7 @@ public:
     float specularExponent;
     //Texture tex;
 
-    inline Material(MaterialType t=DIFFUSE, Vector3f e=Vector3f(0,0,0));
+    inline Material(MaterialType t = DIFFUSE, Vector3f e = Vector3f(0,0,0));
     inline MaterialType getType();
     //inline Vector3f getColor();
     inline Vector3f getColorAt(double u, double v);
@@ -163,7 +160,7 @@ Vector3f Material::eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &
     switch(m_type){
         case DIFFUSE:
         {
-            // calculate the contribution of diffuse   model
+            // calculate the contribution of diffuse model
             float cosalpha = dotProduct(N, wo);
             if (cosalpha > 0.0f) {
                 Vector3f diffuse = Kd / M_PI;

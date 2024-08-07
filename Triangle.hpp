@@ -1,3 +1,6 @@
+#ifndef RAYTRACING_TRIANGLE_H
+#define RAYTRACING_TRIANGLE_H
+
 #pragma once
 
 #include "BVH.hpp"
@@ -5,11 +8,10 @@
 #include "Material.hpp"
 #include "OBJ_Loader.hpp"
 #include "Object.hpp"
-#include "Triangle.hpp"
 #include <cassert>
 #include <array>
 
-bool rayTriangleIntersect(const Vector3f& v0, const Vector3f& v1,
+inline bool rayTriangleIntersect(const Vector3f& v0, const Vector3f& v1,
                           const Vector3f& v2, const Vector3f& orig,
                           const Vector3f& dir, float& tnear, float& u, float& v)
 {
@@ -72,16 +74,16 @@ public:
     }
     Vector3f evalDiffuseColor(const Vector2f&) const override;
     Bounds3 getBounds() override;
-    void Sample(Intersection &pos, float &pdf){
+    void Sample(Intersection &pos, float &pdf) override {
         float x = std::sqrt(get_random_float()), y = get_random_float();
         pos.coords = v0 * (1.0f - x) + v1 * (x * (1.0f - y)) + v2 * (x * y);
         pos.normal = this->normal;
         pdf = 1.0f / area;
     }
-    float getArea(){
+    float getArea() override {
         return area;
     }
-    bool hasEmit(){
+    bool hasEmit() override {
         return m->hasEmission();
     }
 };
@@ -197,6 +199,7 @@ public:
     
     void Sample(Intersection &pos, float &pdf){
         bvh->Sample(pos, pdf);
+        pos.m = m;
         pos.emit = m->getEmission();
     }
     float getArea(){
@@ -204,6 +207,20 @@ public:
     }
     bool hasEmit(){
         return m->hasEmission();
+    }
+    Vector3f getPosition() const {
+        // 计算光源的质心作为位置
+        Vector3f centroid(0, 0, 0);
+        for (const auto& tri : triangles) {
+            centroid += (tri.v0 + tri.v1 + tri.v2) / 3.0;
+        }
+        centroid = centroid / triangles.size();
+        return centroid;
+    }
+
+    Vector3f getIntensity() const {
+        // 使用材质的辐射亮度作为强度
+        return m->getEmission();
     }
 
     Bounds3 bounding_box;
@@ -221,8 +238,7 @@ public:
 };
 
 inline bool Triangle::intersect(const Ray& ray) { return true; }
-inline bool Triangle::intersect(const Ray& ray, float& tnear,
-                                uint32_t& index) const
+inline bool Triangle::intersect(const Ray& ray, float& tnear, uint32_t& index) const
 {
     return false;
 }
@@ -270,3 +286,5 @@ inline Vector3f Triangle::evalDiffuseColor(const Vector2f&) const
 {
     return Vector3f(0.5, 0.5, 0.5);
 }
+
+#endif // RAYTRACING_TRIANGLE_H

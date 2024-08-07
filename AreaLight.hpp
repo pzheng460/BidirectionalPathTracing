@@ -1,22 +1,22 @@
-//
-// Created by Göksu Güvendiren on 2019-05-14.
-//
+#ifndef RAYTRACING_AREALIGHT_H
+#define RAYTRACING_AREALIGHT_H
 
 #pragma once
 
 #include "Vector.hpp"
 #include "Light.hpp"
+#include "Triangle.hpp"
 #include "global.hpp"
 
-class AreaLight : public Light
+class AreaLight : public Light, public MeshTriangle
 {
 public:
-    AreaLight(const Vector3f &p, const Vector3f &i) : Light(p, i)
+    AreaLight(const std::string& filename, Material *mt = new Material()) : MeshTriangle(filename, mt)
     {
-        normal = Vector3f(0, -1, 0);
+        Light::position = getPosition();
+        Light::intensity = getIntensity();
         u = Vector3f(1, 0, 0);
         v = Vector3f(0, 0, 1);
-        length = 100;
     }
 
     Vector3f SamplePoint() const
@@ -26,8 +26,8 @@ public:
         return position + random_u * u + random_v * v;
     }
 
-    float length;
-    Vector3f normal;
     Vector3f u;
     Vector3f v;
 };
+
+#endif //RAYTRACING_AREALIGHT_H

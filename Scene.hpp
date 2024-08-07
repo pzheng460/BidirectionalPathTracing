@@ -1,17 +1,15 @@
-//
-// Created by Göksu Güvendiren on 2019-05-14.
-//
+#ifndef RAYTRACING_SCENE_H
+#define RAYTRACING_SCENE_H
 
 #pragma once
 
 #include <vector>
 #include "Vector.hpp"
-#include "Object.hpp"
-#include "Light.hpp"
 #include "AreaLight.hpp"
 #include "BVH.hpp"
 #include "Ray.hpp"
-
+#include "PathVertex.hpp"
+#include "Camera.hpp"
 
 class Scene
 {
@@ -21,22 +19,22 @@ public:
     int height = 960;
     double fov = 40;
     Vector3f backgroundColor = Vector3f(0.235294, 0.67451, 0.843137);
-    int maxDepth = 1;
+    int maxDepth = 7;
+    int minDepth = 2;
     float RussianRoulette = 0.8;
 
-    Scene(int w, int h) : width(w), height(h)
-    {}
+    Scene(int w, int h) : width(w), height(h) {}
 
     void Add(Object *object) { objects.push_back(object); }
     void Add(std::unique_ptr<Light> light) { lights.push_back(std::move(light)); }
 
     const std::vector<Object*>& get_objects() const { return objects; }
-    const std::vector<std::unique_ptr<Light> >&  get_lights() const { return lights; }
+    const std::vector<std::unique_ptr<Light>>&  get_lights() const { return lights; }
     Intersection intersect(const Ray& ray) const;
     BVHAccel *bvh;
     void buildBVH();
-    Vector3f shade(const Intersection &hitObj, const Vector3f& wo) const;
-    Vector3f castRay(const Ray &ray, int depth) const;
+    Vector3f shade(const Intersection &hitObj, const Vector3f& wo, int depth) const;
+    Vector3f pathTracing(const Ray &ray, int depth) const;
     void sampleLight(Intersection &pos, float &pdf) const;
     bool trace(const Ray &ray, const std::vector<Object*> &objects, float &tNear, uint32_t &index, Object **hitObject);
     std::tuple<Vector3f, Vector3f> HandleAreaLight(const AreaLight &light, const Vector3f &hitPoint, const Vector3f &N,
@@ -44,12 +42,21 @@ public:
                                                    const std::vector<Object *> &objects, uint32_t &index,
                                                    const Vector3f &dir, float specularExponent);
 
+    Vector3f bidirectionalPathTracing(const Ray& ray, std::vector<Vector3f>& framebuffer1) const;
+    void generateLightPath(std::vector<PathVertex>& lightPath) const;
+    void generateCameraPath(std::vector<PathVertex>& cameraPath, const Ray& ray) const;
+    Vector3f connectPath(std::vector<Vector3f>& framebuffer1, std::vector<PathVertex>& lightPath, std::vector<PathVertex>& cameraPath, int s, int t) const;
+    float MISWeight(std::vector<PathVertex>& lightPath, std::vector<PathVertex>& cameraPath, int s, int t) const;
+
     // creating the scene (adding objects and lights)
-    std::vector<Object* > objects;
-    std::vector<std::unique_ptr<Light> > lights;
+    std::vector<Object*> objects;
+    std::vector<std::unique_ptr<Light>> lights;
+
+    // Camera
+    std::unique_ptr<Camera> camera_ = std::make_unique<Camera>(Vector3f(278, 273, -800), width, height, fov);
 
     // Compute reflection direction
-    Vector3f reflect(const Vector3f &I, const Vector3f &N) const
+    Vector3f reflect(const Vector3f& I, const Vector3f& N) const
     {
         return I - 2 * dotProduct(I, N) * N;
     }
@@ -89,7 +96,7 @@ public:
 // \param ior is the material refractive index
 //
 // \param[out] kr is the amount of light reflected
-    void fresnel(const Vector3f &I, const Vector3f &N, const float &ior, float &kr) const
+    void fresnel(const Vector3f& I, const Vector3f& N, const float& ior, float& kr) const
     {
         float cosi = clamp(-1, 1, dotProduct(I, N));
         float etai = 1, etat = ior;
@@ -111,3 +118,5 @@ public:
         // kt = 1 - kr;
     }
 };
+
+#endif //RAYTRACING_SCENE_H
