@@ -120,94 +120,84 @@ Vector3f Scene::connectPath(std::vector<Vector3f>& framebuffer1, std::vector<Pat
 {
     Vector3f L(0);
 
+    int newIdx = 0;
+
     if (s == 0) // if the camera path hits a light source
     {
         if (t > 1 && cameraPath[t - 1].inter.m->hasEmission())
             L = cameraPath[t - 1].alpha * cameraPath[t - 1].inter.m->getEmission();
     }
-    else if (s == 1)
+    else
     {
-        // y0
-        Intersection light_;
-        float pdf_light; // P_A
-        sampleLight(light_, pdf_light);
-
-        PathVertex light;
-        light.inter = light_;
-        light.alpha = light_.emit / pdf_light; // L_e / P_A
-
+        PathVertex light = lightPath[s - 1];
         PathVertex camera = cameraPath[t - 1];
+        Vector3f f_s_light;
+        Vector3f f_s_camera;
+
+        if (s == 1)
+        {
+            // sample a point on the light source
+            Intersection light_;
+            float pdf_light; // P_A
+            sampleLight(light_, pdf_light);
+
+            light.inter = light_;
+            light.alpha = light_.emit / pdf_light; // L_e / P_A
+
+            f_s_light = Vector3f(1.0f);
+        }
+
+        if (t == 1)
+        {
+            float pdf = 1.0f;
+            float We = 0.0;
+            int coorX = 0, coorY = 0;
+            Ray ray = camera_->sample(&pdf, &We, &coorX, &coorY);
+
+            camera.inter.coords = ray.origin;
+            camera.inter.normal = ray.direction;
+            camera.alpha = We / pdf;
+
+            f_s_camera = Vector3f(1.0f);
+            newIdx = coorY * width + coorX;
+        }
 
         Vector3f cameraToLight = light.inter.coords - camera.inter.coords;
         Vector3f cameraToLightNormalized = cameraToLight.normalized();
+
+        if (s > 1)
+        {
+            PathVertex lightPrev = lightPath[s - 2];
+            f_s_light = light.inter.m->eval(-cameraToLightNormalized, (lightPrev.inter.coords - light.inter.coords).normalized(), light.inter.normal);
+        }
+
+        if (t > 1)
+        {
+            PathVertex cameraPrev = cameraPath[t - 2];
+            f_s_camera = camera.inter.m->eval((cameraPrev.inter.coords - camera.inter.coords).normalized(), cameraToLightNormalized, camera.inter.normal);
+        }
+
         auto inter = intersect(Ray(camera.inter.coords, cameraToLightNormalized));
 
         float cos_theta_light = std::max(0.0f, dotProduct(-cameraToLightNormalized, light.inter.normal));
         float cos_theta_camera = std::max(0.0f, dotProduct(cameraToLightNormalized, camera.inter.normal));
 
-        Vector3f f_s = camera.inter.m->eval((cameraPath[t - 2].inter.coords - camera.inter.coords).normalized(),
-                                            cameraToLightNormalized, camera.inter.normal);
-
-        if (inter.distance - cameraToLight.norm() > -eps)
-        {
-            L = camera.alpha * light.alpha * f_s * cos_theta_camera * cos_theta_light / dotProduct(cameraToLight, cameraToLight);
-        }
-    }
-    else if (t == 1)
-    {
-        float pdf = 1.0f;
-        float We = 0.0;
-        int coorX = 0, coorY = 0;
-        Ray ray = camera_->sample(&pdf, &We, &coorX, &coorY);
-
-        PathVertex camera;
-        camera.inter.coords = ray.origin;
-        camera.inter.normal = ray.direction;
-        camera.alpha = We;
-
-        PathVertex light = lightPath[s - 1];
-
-        Vector3f cameraToLight = light.inter.coords - camera.inter.coords;
-        Vector3f cameraToLightNormalized = cameraToLight.normalized();
-        auto inter = intersect(Ray(camera.inter.coords, cameraToLightNormalized));
-
-        float cos_theta_light = std::max(0.0f, dotProduct(-cameraToLightNormalized, light.inter.normal));
-        float cos_theta_camera = std::max(0.0f, dotProduct(cameraToLightNormalized, camera.inter.normal));
-
-        Vector3f f_s = light.inter.m->eval(-cameraToLightNormalized, (lightPath[s - 2].inter.coords - light.inter.coords).normalized(), light.inter.normal);
-
-        if (inter.distance - cameraToLight.norm() > -eps)
-        {
-            int newIdx = coorY * width + coorX;
-            {
-                std::lock_guard<std::mutex> lock(framebuffer_mutex);
-                framebuffer1[newIdx] += camera.alpha * light.alpha * f_s * cos_theta_camera * cos_theta_light / dotProduct(cameraToLight, cameraToLight);
-            }
-        }
-    }
-    else if (s > 1 && t > 1)
-    {
-        PathVertex lightPrev = lightPath[s - 2];
-        PathVertex light = lightPath[s - 1];
-        PathVertex cameraPrev = cameraPath[t - 2];
-        PathVertex camera = cameraPath[t - 1];
-        Vector3f cameraToLight = light.inter.coords - camera.inter.coords;
-        Vector3f cameraToLightNormalized = cameraToLight.normalized();
-        auto inter = intersect(Ray(camera.inter.coords, cameraToLightNormalized));
-
-        if (inter.distance - cameraToLightNormalized.norm() > -eps) // if the ray is not blocked in the middle
-        {
-            auto f_s_light = light.inter.m->eval(-cameraToLightNormalized, (lightPrev.inter.coords - light.inter.coords).normalized(), light.inter.normal);
-            auto f_s_camera = camera.inter.m->eval((cameraPrev.inter.coords - camera.inter.coords).normalized(), cameraToLightNormalized, camera.inter.normal);
-            float cos_theta_light = std::max(0.0f, dotProduct(-cameraToLightNormalized, light.inter.normal));
-            float cos_theta_camera = std::max(0.0f, dotProduct(cameraToLightNormalized, camera.inter.normal));
-            double g = cos_theta_light * cos_theta_camera / dotProduct(cameraToLight, cameraToLight);
-            L = light.alpha * f_s_light * f_s_camera * g * camera.alpha;
+        if (inter.distance - cameraToLight.norm() > -eps) {
+            auto g = cos_theta_light * cos_theta_camera / dotProduct(cameraToLight, cameraToLight);
+            auto c = f_s_light * g * f_s_camera;
+            L = light.alpha * camera.alpha * c;
         }
     }
 
 //    float misWeight = MISWeight(lightPath, cameraPath, s, t);
 //    L = L * misWeight;
+
+    if (t == 1)
+    {
+//        std::lock_guard<std::mutex> lock(framebuffer_mutex);
+//        framebuffer1[newIdx] += L;
+        return {0};
+    }
 
     return L;
 }

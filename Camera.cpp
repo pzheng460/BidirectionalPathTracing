@@ -15,7 +15,7 @@ Ray Camera::sample(float* pdf, float* We, int* coorX, int* coorY) {
     float dist = Vector3f(-x, y, 1).norm();
     Vector3f dir = normalize(Vector3f(-x, y, 1));
     float A = 4 * scale * scale;
-    *We = (cos_theta * cos_theta * cos_theta * cos_theta) / A;
+    *We = 1.0f / (A * cos_theta * cos_theta * cos_theta * cos_theta);
     *pdf = dist * dist / cos_theta;
     return Ray(position + Vector3f(-x, y, 1), dir);
 }
