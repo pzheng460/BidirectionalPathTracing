@@ -40,7 +40,10 @@ $$ f_j(x) = L_e(x_0 \rightarrow x_1) G(x_0 \leftrightarrow x_1) f_s(x_0 \rightar
 
 The unweighted contribution can be written as $C^*_{s,t}$:
 
-$$C^*_{s,t} \equiv \frac{f_j(x_{s,t})}{p_{s,t}(x_{s,t})} \equiv \alpha^L_s c_{s,t} \alpha^E_t$$
+\[
+C^*_{s,t} \equiv \frac{f_j(x_{s,t})}{p_{s,t}(x_{s,t})} \equiv \alpha^L_s c_{s,t} \alpha^E_t
+\]
+
 
 #### 1.3 Path Weights
 
