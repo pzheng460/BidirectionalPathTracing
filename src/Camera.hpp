@@ -14,7 +14,7 @@ public:
     }
     Vector3f position;
     Ray generateRay(int i, int j);
-    Ray sample(float* pdf, float* We, int* coorX, int* coorY);
+    Ray sample(Vector3f& lookAt, float* pdf, float* We, int* coorX, int* coorY);
 
 private:
     int width, height;

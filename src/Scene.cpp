@@ -152,14 +152,22 @@ Vector3f Scene::connectPath(std::vector<Vector3f>& framebuffer1, std::vector<Pat
             float pdf = 1.0f;
             float We = 0.0;
             int coorX = 0, coorY = 0;
-            Ray ray = camera_->sample(&pdf, &We, &coorX, &coorY);
+            Ray ray = camera_->sample(light.inter.coords, &pdf, &We, &coorX, &coorY);
 
             camera.inter.coords = ray.origin;
             camera.inter.normal = ray.direction;
-            camera.alpha = We / pdf;
+            camera.pdfFwd = pdf;
+            camera.alpha = We;
 
             f_s_camera = Vector3f(1.0f);
-            newIdx = coorY * width + coorX;
+            if (coorX >= 0 && coorX < width && coorY >= 0 && coorY < height)
+            {
+                newIdx = coorY * width + coorX;
+            }
+            else
+            {
+                newIdx = -1;
+            }
         }
 
         Vector3f cameraToLight = light.inter.coords - camera.inter.coords;
@@ -189,13 +197,15 @@ Vector3f Scene::connectPath(std::vector<Vector3f>& framebuffer1, std::vector<Pat
         }
     }
 
-//    float misWeight = MISWeight(lightPath, cameraPath, s, t);
-//    L = L * misWeight;
+    float misWeight = MISWeight(lightPath, cameraPath, s, t);
+    L = L * misWeight;
 
     if (t == 1)
     {
-//        std::lock_guard<std::mutex> lock(framebuffer_mutex);
-//        framebuffer1[newIdx] += L;
+        if (newIdx != -1) {
+            std::lock_guard<std::mutex> lock(framebuffer_mutex);
+            framebuffer1[newIdx] += L;
+        }
         return {0};
     }
 

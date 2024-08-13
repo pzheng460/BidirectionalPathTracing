@@ -7,15 +7,18 @@ Ray Camera::generateRay(int i, int j) {
     return Ray(position, dir);
 }
 
-Ray Camera::sample(float* pdf, float* We, int* coorX, int* coorY) {
-    *coorX = rand() % width;
-    *coorY = rand() % height;
-    float x = (2 * (*coorX + 0.5) / (float)width - 1) * imageAspectRatio * scale; // calculate the x value of the pixel
-    float y = (1 - 2 * (*coorY + 0.5) / (float)height) * scale;
-    float dist = Vector3f(-x, y, 1).norm();
-    Vector3f dir = normalize(Vector3f(-x, y, 1));
+Ray Camera::sample(Vector3f& lookAt, float* pdf, float* We, int* coorX, int* coorY) {
+    Vector3f wi = lookAt - position;
+    float dist = wi.norm();
+
+    float x = -wi.x / wi.z;
+    float y = wi.y / wi.z;
+    *coorX = (x / (imageAspectRatio * scale) + 1) * 0.5 * width;
+    *coorY = (1 - y / scale) * 0.5 * height;
+
+    Vector3f dir = normalize(wi);
     float A = 4 * scale * scale;
-    *We = 1.0f / (A * cos_theta * cos_theta * cos_theta * cos_theta);
+    *We = 1.0f / (A * pow(cos_theta, 4));
     *pdf = dist * dist / cos_theta;
-    return Ray(position + Vector3f(-x, y, 1), dir);
+    return Ray(position, dir);
 }

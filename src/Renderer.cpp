@@ -18,8 +18,8 @@ void render_thread(std::vector<Vector3f>& framebuffer0, std::vector<Vector3f>& f
         for (int j = 0; j < scene.width; j++) {
             int index = i * scene.width + j;
             for (int k = 0; k < spp; k++) {
-                framebuffer0[index] += scene.pathTracing(scene.camera_->generateRay(i, j), 0) / spp;
-//                framebuffer0[index] += scene.bidirectionalPathTracing(scene.camera_->generateRay(i, j), framebuffer1) / spp;
+//                framebuffer0[index] += scene.pathTracing(scene.camera_->generateRay(i, j), 0) / spp;
+                framebuffer0[index] += scene.bidirectionalPathTracing(scene.camera_->generateRay(i, j), framebuffer1) / spp;
             }
         }
         {
