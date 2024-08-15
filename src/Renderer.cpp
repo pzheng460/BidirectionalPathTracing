@@ -31,8 +31,8 @@ void render_thread(std::vector<Vector3f>& framebuffer0, std::vector<Vector3f>& f
 
 void Renderer::Render(const Scene& scene, int spp)
 {
-    std::vector<Vector3f> framebuffer0(scene.width * scene.height);
-    std::vector<Vector3f> framebuffer1(scene.width * scene.height);
+    std::vector<Vector3f> framebuffer0(scene.width * scene.height); // camera map
+    std::vector<Vector3f> framebuffer1(scene.width * scene.height); // light map
 
     g_complateTotals = 0;
 

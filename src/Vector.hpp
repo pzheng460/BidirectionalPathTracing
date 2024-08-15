@@ -16,7 +16,8 @@ public:
     Vector3f operator * (const float &r) const { return Vector3f(x * r, y * r, z * r); }
     Vector3f operator / (const float &r) const { return Vector3f(x / r, y / r, z / r); }
 
-    float norm() {return std::sqrt(x * x + y * y + z * z);}
+    float norm() { return std::sqrt(x * x + y * y + z * z); }
+    float norm2() { return x * x + y * y + z * z; }
     Vector3f normalized() {
         float n = std::sqrt(x * x + y * y + z * z);
         return Vector3f(x / n, y / n, z / n);
@@ -76,7 +77,9 @@ inline Vector3f normalize(const Vector3f &v)
 }
 
 inline float dotProduct(const Vector3f &a, const Vector3f &b)
-{ return a.x * b.x + a.y * b.y + a.z * b.z; }
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 
 inline Vector3f crossProduct(const Vector3f &a, const Vector3f &b)
 {

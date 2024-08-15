@@ -197,15 +197,15 @@ public:
         return intersec;
     }
     
-    void Sample(Intersection &pos, float &pdf){
+    void Sample(Intersection &pos, float &pdf) {
         bvh->Sample(pos, pdf);
         pos.m = m;
         pos.emit = m->getEmission();
     }
-    float getArea(){
+    float getArea() {
         return area;
     }
-    bool hasEmit(){
+    bool hasEmit() {
         return m->hasEmission();
     }
     Vector3f getPosition() const {

@@ -44,7 +44,7 @@ int main(int argc, char** argv)
     scene.buildBVH();
 
     Renderer r;
-    int spp = 16;
+    int spp = 4;
     if (argc > 1)
     {
         spp = std::atoi(argv[1]);

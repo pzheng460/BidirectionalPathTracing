@@ -46,7 +46,7 @@ public:
     void generateLightPath(std::vector<PathVertex>& lightPath) const;
     void generateCameraPath(std::vector<PathVertex>& cameraPath, const Ray& ray) const;
     Vector3f connectPath(std::vector<Vector3f>& framebuffer1, std::vector<PathVertex>& lightPath, std::vector<PathVertex>& cameraPath, int s, int t) const;
-    float MISWeight(std::vector<PathVertex>& lightPath, std::vector<PathVertex>& cameraPath, int s, int t) const;
+    double MISWeight(std::vector<PathVertex>& lightPath, std::vector<PathVertex>& cameraPath, int s, int t, PathVertex& lightSample, PathVertex& cameraSample) const;
 
     // creating the scene (adding objects and lights)
     std::vector<Object*> objects;
