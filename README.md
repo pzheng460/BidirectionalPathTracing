@@ -38,9 +38,6 @@ function BidirectionalPathTracing(scene, camera, lightSources, maxDepth):
             
             for i in range(len(eyePath)):
                 for j in range(len(lightPath)):
-                    if i == 0 and j == 0:
-                        continue  # Skip invalid connections
-                    
                     connection = connect_paths(eyePath[i], lightPath[j], scene)
                     
                     if is_valid_connection(connection, scene):
@@ -50,64 +47,6 @@ function BidirectionalPathTracing(scene, camera, lightSources, maxDepth):
         image[pixel] = radiance / num_samples
     
     return image
-
-function generate_eye_path(camera, scene, maxDepth):
-    path = []
-    ray = camera.generate_ray(pixel)
-    
-    for depth in range(maxDepth):
-        intersection = scene.intersect(ray)
-        if not intersection:
-            break
-        
-        path.append(intersection)
-        nextDirection = sample_direction(intersection)
-        ray = create_ray(intersection, nextDirection)
-    
-    return path
-
-function generate_light_path(lightSources, scene, maxDepth):
-    path = []
-    light = sample_light_source(lightSources)
-    position, direction = light.sample()
-    
-    ray = create_ray(position, direction)
-    
-    for depth in range(maxDepth):
-        intersection = scene.intersect(ray)
-        if not intersection:
-            break
-        
-        path.append(intersection)
-        nextDirection = sample_direction(intersection)
-        ray = create_ray(intersection, nextDirection)
-    
-    return path
-
-function connect_paths(eyeVertex, lightVertex, scene):
-    direction = normalize(lightVertex.position - eyeVertex.position)
-    connectionRay = create_ray(eyeVertex.position, direction)
-    
-    if scene.is_occluded(connectionRay, eyeVertex, lightVertex):
-        return None
-    
-    return connectionRay
-
-function evaluate_path_contribution(eyePath, lightPath, connection):
-    contribution = vec3(1)
-    
-    for vertex in eyePath + lightPath:
-        contribution *= vertex.material.BRDF()
-    
-    return contribution
-
-function MIS_weight(eyePath, lightPath, i, j):
-    # Compute MIS weight based on the length of the eye and light sub-paths
-    return compute_weight(eyePath, lightPath, i, j)
-
-function is_valid_connection(connection, scene):
-    # Check if the connection between the paths is valid (e.g., not blocked)
-    return connection is not None
 ```
 
 ### Explanation
@@ -176,15 +115,15 @@ $$ f_j(\bar{x})=L_e(x_0\rightarrow x_1)G(x_0\leftrightarrow x_1)W_e^{j}(x_{k-1}\
 
 In Bidirectional Path Tracing (BDPT), $\bar{x}$ is sampled from both the light source and the eye/camera. Suppose for $\bar{x}$, obtained from a light subpath with $s$ vertices and an eye subpath with $t$ vertices, the corresponding sampling probability density function is:
 
-$$ p_{s,t}(\bar{x}_{s,t})=p_s^L\cdot p_t^E\\ p_0^L=1,p_1^L=P_A(y_0),p_i^L=p_{\sigma^{\perp}}G(y_{i-2}\leftrightarrow y_{i-1}),i\geqslant 2\\ p_0^E=1,p_1^E=P_A(z_0),p_i^L=p_{\sigma^{\perp}}G(z_{i-2}\leftrightarrow z_{i-1}),i\geqslant 2\\ $$
+$$ p_{s,t}(\bar{x})=p_s^L\cdot p_t^E\\ p_0^L=1,p_1^L=P_A(y_0),p_i^L=p_{\sigma^{\perp}}G(y_{i-2}\leftrightarrow y_{i-1}),i\geqslant 2\\ p_0^E=1,p_1^E=P_A(z_0),p_i^E=p_{\sigma^{\perp}}G(z_{i-2}\leftrightarrow z_{i-1}),i\geqslant 2\\ $$
 
 where $y_i$ are vertices on the light subpath, and $z_i$ are vertices on the eye subpath.
 
 Substituting this into the Monte Carlo sampling formula, the contribution of each sample is:
 
-$$ \frac{f_j(\bar{x}_{s,t})}{p_{s,t}(\bar{x}_{s,t})}=\alpha_s^Lc_{s,t}\alpha_t^E=C_{s,t}\\ \alpha_0^L=1,\alpha_1^L=\frac{L_e^{(0)}(y_0)}{p_A(y_0)},\alpha_i^{L}=\frac{f_s(y_{i-3}\rightarrow y_{i-2}\rightarrow y_{i-1})}{p_{\sigma^{\perp}}(y_{i-2}\rightarrow y_{i-1})}\alpha_{i-1}^L,i\geqslant 2\\ \alpha_0^E=1,\alpha_1^E=\frac{W_e^{(0)}(z_0)}{p_A(z_0)},\alpha_i^{L}=\frac{f_s(z_{i-1}\rightarrow z_{i-2}\rightarrow z_{i-3})}{p_{\sigma^{\perp}}(z_{i-2}\rightarrow z_{i-1})}\alpha_{i-1}^E,i\geqslant 2\\ c_{0,t}=L_e(z_{t-1}\rightarrow z_{t-2})\\ c_{t,0}=W_e(y_{s-2}\rightarrow y_{s-1})\\ c_{s,t}=f_s(y_{s-2}\rightarrow y_{s-1} \rightarrow y_{t-1})G(y_{s-1}\leftrightarrow z_{t-1})f_s(y_{s-1}\rightarrow z_{t-1}\rightarrow z_{t-2}),s,t>0 $$
+$$ \alpha_s^Lc_{s,t}\alpha_t^E=C_{s,t}\\ \alpha_0^L=1,\alpha_1^L=\frac{L_e^{(0)}(y_0)}{p_A(y_0)},\alpha_i^{L}=\frac{f_s(y_{i-3}\rightarrow y_{i-2}\rightarrow y_{i-1})}{p_{\sigma^{\perp}}(y_{i-2}\rightarrow y_{i-1})}\alpha_{i-1}^L,i\geqslant 2\\ \alpha_0^E=1,\alpha_1^E=\frac{W_e^{(0)}(z_0)}{p_A(z_0)},\alpha_i^{E}=\frac{f_s(z_{i-1}\rightarrow z_{i-2}\rightarrow z_{i-3})}{p_{\sigma^{\perp}}(z_{i-2}\rightarrow z_{i-1})}\alpha_{i-1}^E,i\geqslant 2\\ c_{0,t}=L_e(z_{t-1}\rightarrow z_{t-2})\\ c_{t,0}=W_e(y_{s-2}\rightarrow y_{s-1})\\ c_{s,t}=f_s(y_{s-2}\rightarrow y_{s-1} \rightarrow y_{t-1})G(y_{s-1}\leftrightarrow z_{t-1})f_s(y_{s-1}\rightarrow z_{t-1}\rightarrow z_{t-2}),s,t>0 $$
 
-However, the above formula from Veach’s paper seems inconsistent with the formula for unidirectional path tracing. To make both consistent, I made the following modifications:
+However, the above formula from Veach’s paper seems inconsistent with the formula for standard path tracing. To make both consistent, I made the following modifications:
 
 $$ \alpha_i^{L}=\frac{f_s(y_{i-3}\rightarrow y_{i-2}\rightarrow y_{i-1})\cos\theta_{y_{i-2}\rightarrow y_{i-1}}}{p_{\sigma^{\perp}}(y_{i-2}\rightarrow y_{i-1})}\alpha_{i-1}^L,i\geqslant 2\\ \alpha_i^{E}=\frac{f_s(z_{i-1}\rightarrow z_{i-2}\rightarrow z_{i-3})\cos\theta_{z_{i-2}\rightarrow z_{i-1}}}{p_{\sigma^{\perp}}(z_{i-2}\rightarrow z_{i-1})}\alpha_{i-1}^E,i\geqslant 2 $$
 
