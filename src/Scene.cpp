@@ -144,8 +144,12 @@ Vector3f Scene::connectPath(std::vector<Vector3f>& framebuffer1, std::vector<Pat
             sampleLight(light_, pdf_light);
 
             lightSample.inter = light_;
+            lightSample.inter.m = new Material(DIFFUSE, Vector3f(0));
             lightSample.alpha = light_.emit / pdf_light; // L_e / P_A
-            lightSample.pdfFwd = pdf_light;
+            lightSample.point_pdf = pdf_light;
+            Vector3f wo_0 = light_.m->sample(Vector3f(0, 0, 0), light_.normal).normalized();
+            lightSample.dir_pdf = light_.m->pdf(Vector3f(0, 0, 0), wo_0, light_.normal); // directional pdf
+            lightSample.p = lightSample.dir_pdf;
 
             light = lightSample;
 
@@ -161,7 +165,10 @@ Vector3f Scene::connectPath(std::vector<Vector3f>& framebuffer1, std::vector<Pat
 
             cameraSample.inter.coords = ray.origin;
             cameraSample.inter.normal = ray.direction;
-            cameraSample.pdfFwd = pdf;
+            cameraSample.inter.m = new Material(DIFFUSE, Vector3f(0));
+            cameraSample.point_pdf = 1.0f;
+            cameraSample.dir_pdf = pdf;
+            cameraSample.p = pdf;
             cameraSample.alpha = We;
 
             camera = cameraSample;
@@ -248,31 +255,36 @@ void Scene::generateLightPath(std::vector<PathVertex>& lightPath) const
     v0.alpha = light.emit / pdf_light; // L_e / P_A
     Vector3f wo_0 = light.m->sample(Vector3f(0, 0, 0), light.normal).normalized();
     v0.dir_pdf = light.m->pdf(Vector3f(0, 0, 0), wo_0, light.normal); // directional pdf
-    v0.pdfFwd = v0.dir_pdf;
+    v0.p = v0.dir_pdf;
     lightPath.push_back(v0);
 
     int i = 1;
     Vector3f f_s(1.0);
-    PathVertex pre = v0;
+    PathVertex& pre = v0;
     Ray currentRay(light.coords, wo_0);  // Assuming light emits along normal direction
     while (true) {
-        if (pre.pdfFwd < eps && i != 1) break;
+        if (pre.p < eps && i != 1) break;
 
         Intersection inter = intersect(currentRay);
 
         if (!inter.happened) break;
-//        if (inter.m->hasEmission()) break;
+        if (inter.m->hasEmission()) break;
         if (i >= maxDepth + 1) break;
 
         PathVertex v;
         v.inter = inter;
         Vector3f wi = -currentRay.direction;
         float cos_theta = std::max(0.0f, dotProduct(-wi, pre.inter.normal));
-        v.alpha = lightPath[i - 1].alpha * f_s * cos_theta / pre.pdfFwd;
+//        v.pdfFwd = pre.p * cos_theta * std::max(0.0f, dotProduct(wi, inter.normal)) / (dotProduct(inter.coords - pre.inter.coords, inter.coords - pre.inter.coords));
+//        v.pdfFwd = pre.p;
+        v.alpha = lightPath[i - 1].alpha * f_s * cos_theta / pre.p;
         Vector3f wo = inter.m->sample(-currentRay.direction, inter.normal).normalized();
         f_s = inter.m->eval(wi, wo, inter.normal);
-        v.pdfFwd = inter.m->pdf(wi, wo, inter.normal);
+        v.p = inter.m->pdf(wi, wo, inter.normal);
         lightPath.push_back(v);
+
+//        lightPath[i - 1].pdfRev = inter.m->pdf(wo, wi, inter.normal) * std::max(0.0f, dotProduct(-wi, pre.inter.normal)) * std::max(0.0f, dotProduct(wi, inter.normal)) / (dotProduct(inter.coords - pre.inter.coords, inter.coords - pre.inter.coords));
+//        lightPath[i - 1].pdfRev = inter.m->pdf(wo, wi, inter.normal);
 
         currentRay = Ray(inter.coords, wo);
         pre = v;
@@ -290,16 +302,16 @@ void Scene::generateCameraPath(std::vector<PathVertex> &cameraPath, const Ray& r
     v0.inter.normal = ray.direction;
     v0.inter.m = new Material(DIFFUSE, Vector3f(0));
     v0.alpha = Vector3f(1);
-    v0.pdfFwd = 1.0f;
+    v0.p = 1.0f;
     v0.dir_pdf = 1.0f;
     v0.point_pdf = 1.0f;
     cameraPath.push_back(v0);
 
     int i = 1;
     Vector3f f_s(1.0f);
-    PathVertex pre = v0;
+    PathVertex& pre = v0;
     while (true) {
-        if (pre.pdfFwd < eps) break;
+        if (pre.p < eps) break;
 
         Intersection inter = intersect(currentRay);
 
@@ -309,14 +321,18 @@ void Scene::generateCameraPath(std::vector<PathVertex> &cameraPath, const Ray& r
         PathVertex v;
         v.inter = inter;
         Vector3f wi = -currentRay.direction;
-        float cos_theta = std::max(0.0f, dotProduct(-wi, v0.inter.normal));
-        v.alpha = cameraPath[i - 1].alpha * f_s * cos_theta / pre.pdfFwd;
+        float cos_theta = std::max(0.0f, dotProduct(-wi, pre.inter.normal));
+//        v.pdfFwd = pre.p * cos_theta * std::max(0.0f, dotProduct(wi, inter.normal)) / (dotProduct(inter.coords - pre.inter.coords, inter.coords - pre.inter.coords));
+//        v.pdfFwd = pre.p;
+        v.alpha = cameraPath[i - 1].alpha * f_s * cos_theta / pre.p;
         Vector3f wo = inter.m->sample(-currentRay.direction, inter.normal).normalized();
         f_s = inter.m->eval(wi, wo, inter.normal);
-        v.pdfFwd = inter.m->pdf(wi, wo, inter.normal);
+        v.p = inter.m->pdf(wi, wo, inter.normal);
         cameraPath.push_back(v);
 
-//        if (inter.m->hasEmission()) break;
+//        cameraPath[i - 1].pdfRev = inter.m->pdf(wo, wi, inter.normal) * std::max(0.0f, dotProduct(-wi, pre.inter.normal)) * std::max(0.0f, dotProduct(wi, inter.normal)) / (dotProduct(inter.coords - pre.inter.coords, inter.coords - pre.inter.coords));
+//        cameraPath[i - 1].pdfRev = inter.m->pdf(wo, wi, inter.normal);
+        if (inter.m->hasEmission()) break;
 
         currentRay = Ray(inter.coords, wo);
         pre = v;
@@ -329,14 +345,13 @@ double Scene::MISWeight(std::vector<PathVertex>& lightPath, std::vector<PathVert
 {
     // Initialize weight inverse and ratio
     double w_inv = 0.0, ratio = 1.0;
-    w_inv += ratio;
 
     // Traverse the camera path
     PathVertex cur_v, prev_v, next_v;
-    for (int i = t - 1; i > 1; --i) {
+    for (int i = t - 1; i > 0; --i) {
         cur_v = cameraPath[i];
         if (i == t - 1) {
-            prev_v = (s == 0) ? lightSample : lightPath[s - 1];
+            prev_v = (s == 1) ? lightSample : lightPath[s - 1];
         } else {
             prev_v = cameraPath[i + 1];
         }
@@ -351,23 +366,30 @@ double Scene::MISWeight(std::vector<PathVertex>& lightPath, std::vector<PathVert
         wi = cur_v.inter.coords - prev_v.inter.coords;
         wi = wi.normalized();
 
-        g = fabs(dotProduct(-wi, cur_v.inter.normal) * dotProduct(wi, prev_v.inter.normal)) / (dist * dist);
+        g = fabs(std::max(0.0f, dotProduct(-wi, cur_v.inter.normal)) * std::max(0.0f, dotProduct(wi, prev_v.inter.normal))) / (dist * dist);
 
         // Compute the probability density function (PDF)
         if (s == 0 && i == t - 1)
         {
             // The path vertex is directly connected to the light source
-            p = lightSample.pdfFwd;
+            if ((lightSample.inter.coords - cur_v.inter.coords).norm() < eps)
+            {
+                p = lightSample.point_pdf;
+                g = 1.0;
+            }
+            else
+            {
+                return 0.0;
+            }
         }
         else if (s == 1 && i == t - 1)
         {
             // The path vertex is on the light source
-            p = 1.0;
+            p = lightSample.point_pdf;
         }
-        else if (s == 0 && i == t - 2)
+        else if (s == 1 && i == t - 2)
         {
-            // The path vertex directly connects to the light source
-            p = 1.0;
+            p = lightSample.dir_pdf;
         }
         else
         {
@@ -380,13 +402,16 @@ double Scene::MISWeight(std::vector<PathVertex>& lightPath, std::vector<PathVert
         dist = wo.norm();
         wo = wo.normalized();
 
-        g = fabs(dotProduct(wo, cur_v.inter.normal) * dotProduct(-wo, next_v.inter.normal)) / (dist * dist);
+        g = fabs(std::max(0.0f, dotProduct(wo, cur_v.inter.normal)) * std::max(0.0f, dotProduct(-wo, next_v.inter.normal))) / (dist * dist);
 
-        if (i == 2) {
+        if (i == 1)
+        {
             // The vertex is on the camera lens
             p = 1.0;
             g = 1.0;
-        } else {
+        }
+        else
+        {
             p = next_v.inter.m->pdf(Vector3f(0, 0, 0), -wo, next_v.inter.normal);
         }
         denom = p * g;
@@ -415,11 +440,14 @@ double Scene::MISWeight(std::vector<PathVertex>& lightPath, std::vector<PathVert
         double dist = wi.norm();
         wi = wi.normalized();
 
-        g = fabs(dotProduct(-wi, cur_v.inter.normal) * dotProduct(wi, prev_v.inter.normal)) / (dist * dist);
+        g = fabs(std::max(0.0f, dotProduct(-wi, cur_v.inter.normal)) * std::max(0.0f, dotProduct(wi, prev_v.inter.normal))) / (dist * dist);
 
-        if (t <= 1 && i == s - 1) {
-            p = cameraSample.pdfFwd;
-        } else {
+        if (t <= 1 && i == s - 1)
+        {
+            p = cameraSample.dir_pdf;
+        }
+        else
+        {
             p = prev_v.inter.m->pdf(Vector3f(0, 0, 0), wi, prev_v.inter.normal);
         }
         nom = p * g;
@@ -429,20 +457,30 @@ double Scene::MISWeight(std::vector<PathVertex>& lightPath, std::vector<PathVert
         dist = wo.norm();
         wo = wo.normalized();
 
-        g = fabs(dotProduct(wo, cur_v.inter.normal) * dotProduct(-wo, next_v.inter.normal)) / (dist * dist);
-
-        if (i > 1) {
-            p = next_v.inter.m->pdf(Vector3f(0, 0, 0), -wo, next_v.inter.normal);
-            denom = p * g;
-        } else {
-            denom = cur_v.pdfFwd;
+        g = fabs(std::max(0.0f, dotProduct(wo, cur_v.inter.normal)) * std::max(0.0f, dotProduct(-wo, next_v.inter.normal))) / (dist * dist);
+        if (i == 1)
+        {
+            p = next_v.point_pdf;
         }
+        else
+        {
+            p = next_v.inter.m->pdf(Vector3f(0, 0, 0), -wo, next_v.inter.normal);
+        }
+
+        denom = p * g;
 
         ratio *= nom / denom;
 
         w_inv += ratio * ratio;
     }
 
-    // Return the final MIS weight
-    return 1.0 / w_inv;
+    w_inv += 1.0;
+
+    double w = 1.0 / w_inv;
+
+    if (w < 1.0 || (s <= 1 && t <= 1)) {
+        return w;
+    } else {
+        return 1.0;
+    }
 }

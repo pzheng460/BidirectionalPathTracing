@@ -10,9 +10,12 @@ class PathVertex {
 public:
     PathVertex() {}
 
-    double pdfFwd;
+    double p;
     Intersection inter;
     Vector3f alpha; // 不断跟踪 BSDF 间接照明的权重，在部分实现中也用beta表示
+
+    double pdfFwd;
+    double pdfRev;
 
     // For end vertex
     double dir_pdf;
