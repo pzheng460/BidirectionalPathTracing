@@ -2,9 +2,7 @@
 
 ## Introduction
 
-This program provides a detailed implementation of a fundamental paper in rendering, focusing on Bidirectional Path Tracing (BDPT). The algorithm consists of the process of generating light subpaths and camera subpaths, Multiple Importance Sampling (MIS). The whole project is written in pure C++ based on the architecture of path tracing assignment from GAMES101 by Prof. Lingqi Yan (UCSB).
-
-### Bidirectional Path Tracing Overview
+This program provides a detailed implementation of a fundamental paper in rendering, focusing on Bidirectional Path Tracing (BDPT). The whole project is written in pure C++ based on the architecture of path tracing assignment from GAMES101 by Prof. Lingqi Yan (UCSB).
 
 Bidirectional Path Tracing (BDPT) is an advanced global illumination algorithm that combines the strengths of both path tracing and light tracing. In BDPT, paths are traced from both the camera (eye) and the light sources, and these paths are connected to form complete light transport paths. This method effectively handles complex lighting scenarios, including caustics and indirect lighting, by sampling light paths more effectively.
 
@@ -176,8 +174,9 @@ angle between the ray and the normal at the eye point (for the pinhole model, it
 This project is still under development. More features might be added in the future. And there might be still some bugs in the implementation of the BDPT algorithm.
 
 - In this project, I only consider the diffuse surface and reflection. Therefore, only Lambertian BRDF is used in the implementation. 
-- In the standard path tracing algorithm, I use the Russian Roulette technique to terminate the path. However, in the BDPT algorithm, we use the path length to terminate the path and Russian Roulette is not taken into consideration in BDPT. Therefore, the path length should be set to a proper value to avoid the infinite loop.
-- In the standard path tracing algorithm, I sampled the light source to obtain the direct illumination. However, in the BDPT algorithm, I only consider the indirect illumination. Therefore, So, the results of standard path tracing might be better than those of some traditional implementations.
+- In the standard path tracing algorithm, I use the Russian Roulette technique to terminate the path. However, in the BDPT algorithm, I use the path length to terminate the path and Russian Roulette is not taken into consideration in BDPT.
+- In the standard path tracing algorithm, I sampled the light source to obtain the direct illumination, which increase the probability of direct illumination. So, the results of standard path tracing might be better than those of some traditional implementations.
+
 ## References
 
 1. Veach E. "Robust Monte Carlo Methods for Light Transport Simulation," Ph.D. thesis, Stanford University Department of Computer Science, 1998.
