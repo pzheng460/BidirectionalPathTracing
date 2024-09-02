@@ -174,7 +174,7 @@ angle between the ray and the normal at the eye point (for the pinhole model, it
 This project is still under development. More features might be added in the future. And there might be still some bugs in the implementation of the BDPT algorithm.
 
 - In this project, I only consider the diffuse surface and reflection. Therefore, only Lambertian BRDF is used in the implementation. 
-- In the standard path tracing algorithm, I use the Russian Roulette technique to terminate the path. However, in the BDPT algorithm, I use the path length to terminate the path and Russian Roulette is not taken into consideration in BDPT.
+- In the standard path tracing algorithm, I use the Russian Roulette technique to terminate the path. However, in the BDPT algorithm, I use the path length to terminate the path and Russian Roulette is not taken into consideration.
 - In the standard path tracing algorithm, I sampled the light source to obtain the direct illumination, which increase the probability of direct illumination. So, the results of standard path tracing might be better than those of some traditional implementations.
 
 ## References

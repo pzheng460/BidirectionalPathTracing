@@ -275,16 +275,11 @@ void Scene::generateLightPath(std::vector<PathVertex>& lightPath) const
         v.inter = inter;
         Vector3f wi = -currentRay.direction;
         float cos_theta = std::max(0.0f, dotProduct(-wi, pre.inter.normal));
-//        v.pdfFwd = pre.p * cos_theta * std::max(0.0f, dotProduct(wi, inter.normal)) / (dotProduct(inter.coords - pre.inter.coords, inter.coords - pre.inter.coords));
-//        v.pdfFwd = pre.p;
         v.alpha = lightPath[i - 1].alpha * f_s * cos_theta / pre.p;
         Vector3f wo = inter.m->sample(-currentRay.direction, inter.normal).normalized();
         f_s = inter.m->eval(wi, wo, inter.normal);
         v.p = inter.m->pdf(wi, wo, inter.normal);
         lightPath.push_back(v);
-
-//        lightPath[i - 1].pdfRev = inter.m->pdf(wo, wi, inter.normal) * std::max(0.0f, dotProduct(-wi, pre.inter.normal)) * std::max(0.0f, dotProduct(wi, inter.normal)) / (dotProduct(inter.coords - pre.inter.coords, inter.coords - pre.inter.coords));
-//        lightPath[i - 1].pdfRev = inter.m->pdf(wo, wi, inter.normal);
 
         currentRay = Ray(inter.coords, wo);
         pre = v;
@@ -322,16 +317,12 @@ void Scene::generateCameraPath(std::vector<PathVertex> &cameraPath, const Ray& r
         v.inter = inter;
         Vector3f wi = -currentRay.direction;
         float cos_theta = std::max(0.0f, dotProduct(-wi, pre.inter.normal));
-//        v.pdfFwd = pre.p * cos_theta * std::max(0.0f, dotProduct(wi, inter.normal)) / (dotProduct(inter.coords - pre.inter.coords, inter.coords - pre.inter.coords));
-//        v.pdfFwd = pre.p;
         v.alpha = cameraPath[i - 1].alpha * f_s * cos_theta / pre.p;
         Vector3f wo = inter.m->sample(-currentRay.direction, inter.normal).normalized();
         f_s = inter.m->eval(wi, wo, inter.normal);
         v.p = inter.m->pdf(wi, wo, inter.normal);
         cameraPath.push_back(v);
 
-//        cameraPath[i - 1].pdfRev = inter.m->pdf(wo, wi, inter.normal) * std::max(0.0f, dotProduct(-wi, pre.inter.normal)) * std::max(0.0f, dotProduct(wi, inter.normal)) / (dotProduct(inter.coords - pre.inter.coords, inter.coords - pre.inter.coords));
-//        cameraPath[i - 1].pdfRev = inter.m->pdf(wo, wi, inter.normal);
         if (inter.m->hasEmission()) break;
 
         currentRay = Ray(inter.coords, wo);
